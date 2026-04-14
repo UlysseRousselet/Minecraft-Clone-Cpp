@@ -1,4 +1,7 @@
 #include "my.h"
+#include <filesystem>
+#include <limits.h>
+#include <unistd.h>
 
 GLFWwindow *window = NULL;
 bool firstMouse = true;
@@ -24,11 +27,14 @@ glm::mat4 projection = glm::perspective(glm::radians(90.0f), SCREEN_WIDTH_F / SC
 
 std::string GetcurrentDirectory()
 {
-	char buffer[3000];
-	GetModuleFileNameA(NULL, buffer, 3000);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	
-	return std::string(buffer).substr(0, pos);
+    char executable_path[PATH_MAX];
+    const ssize_t len = readlink("/proc/self/exe", executable_path, sizeof(executable_path) - 1);
+    if (len <= 0) {
+        return std::filesystem::current_path().string();
+    }
+
+    executable_path[len] = '\0';
+    return std::filesystem::path(executable_path).parent_path().string();
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -40,7 +46,7 @@ void init_seed()
 {
     std::string vertex_shader_str;
     std::ifstream vertex_shader_stream;
-    vertex_shader_stream.open(GetcurrentDirectory().append("\\seed.txt").c_str());
+    vertex_shader_stream.open((GetcurrentDirectory() + "/seed.txt").c_str());
     std::stringstream vertex_shader_s;
     vertex_shader_s << vertex_shader_stream.rdbuf();
     vertex_shader_str = vertex_shader_s.str();
